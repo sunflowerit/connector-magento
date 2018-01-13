@@ -77,10 +77,10 @@ class AccountInvoiceAdapter(GenericAdapter):
     _magento_model = 'sales_order_invoice'
     _admin_path = 'sales_invoice/view/invoice_id/{id}'
 
-    def _call(self, method, arguments, http_method=None):
+    def _call(self, method, arguments):
         try:
             return super(AccountInvoiceAdapter, self)._call(
-                method, arguments, http_method=http_method)
+                method, arguments)
         except xmlrpclib.Fault as err:
             # this is the error in the Magento API
             # when the invoice does not exist
@@ -124,7 +124,7 @@ class AccountInvoiceAdapter2000(AccountInvoiceAdapter):
             },
             'appendComment': include_comment,
         }
-        res = self._call(
+        res = self._call_v2(
             'order/%s/invoice' % order_increment_id, arguments,
             http_method='post')
         return res

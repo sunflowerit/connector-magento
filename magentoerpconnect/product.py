@@ -207,11 +207,13 @@ class ProductProductAdapter(GenericAdapter):
     _magento2_model = 'products'
     _magento2_search = 'products'
     _magento2_key = 'sku'
+    _magento2_write_wrapper = 'product'
     _admin_path = '/{model}/edit/id/{id}'
 
     def _call(self, method, arguments):
         try:
-            return super(ProductProductAdapter, self)._call(method, arguments)
+            return super(ProductProductAdapter, self)._call(
+                method, arguments)
         except xmlrpclib.Fault as err:
             # this is the error in the Magento API
             # when the product does not exist
@@ -263,7 +265,7 @@ class ProductProductAdapter(GenericAdapter):
         # XXX actually only ol_catalog_product.update works
         # the PHP connector maybe breaks the catalog_product.update
         if self.magento.version == '2.0':
-            raise NotImplementedError  # TODO
+            return super(ProductProductAdapter, self).write(id, data)
         return self._call('ol_catalog_product.update',
                           [int(id), data, storeview_id, 'id'])
 
@@ -277,8 +279,6 @@ class ProductProductAdapter(GenericAdapter):
                           [int(id), image_name, storeview_id, 'id'])
 
     def update_inventory(self, id, data):
-        if self.magento.version == '2.0':
-            raise NotImplementedError  # TODO
         # product_stock.update is too slow
         return self._call('oerp_cataloginventory_stock_item.update',
                           [int(id), data])
@@ -292,6 +292,9 @@ class ProductProductAdapter2000(ProductProductAdapter):
         return (entry for entry in
                 data.get('media_gallery_entries', [])
                 if entry['media_type'] == 'image')
+
+    def update_inventory(self, id, data):
+        self.write(id, data)
 
 
 @magento
@@ -720,11 +723,21 @@ class ProductInventoryExporter(Exporter):
     def _get_data(self, product, fields):
         result = {}
         if 'magento_qty' in fields:
-            result.update({
-                'qty': product.magento_qty,
-                # put the stock availability to "out of stock"
-                'is_in_stock': int(product.magento_qty > 0)
-            })
+            if self.backend.version == '2.0':
+                result.update({
+                    'extensionAttributes': {
+                        'stockItem': {
+                            'qty': product.magento_qty,
+                            'isInStock': int(product.magento_qty > 0)
+                        }
+                    }
+                })
+            else:
+                result.update({
+                    'qty': product.magento_qty,
+                    # put the stock availability to "out of stock"
+                    'is_in_stock': int(product.magento_qty > 0)
+                })
         if 'manage_stock' in fields:
             manage = product.manage_stock
             result.update({

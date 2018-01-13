@@ -157,15 +157,14 @@ class MagentoCRUDAdapter(CRUDAdapter):
         """ Delete a record on the external system """
         raise NotImplementedError
 
-    def _call(self, method, arguments=None, http_method=None, storeview=None):
+    def _call_v2(self, method, arguments=None, http_method=None, storeview=None):
         try:
             custom_url = self.magento.use_custom_api_path
-            protocol = 'rest' if self.magento.version == '2.0' else 'xmlrpc'
-            _logger.debug("Start calling Magento api %s", method)
+            _logger.debug("Start calling Magento V2 REST api %s", method)
             with magentolib.API(self.magento.location,
                                 self.magento.username,
                                 self.magento.password,
-                                protocol=protocol,
+                                protocol='rest',
                                 full_url=custom_url,
                                 verify_ssl=self.magento.verify_ssl) as api:
                 # When Magento is installed on PHP 5.4+, the API
@@ -187,6 +186,41 @@ class MagentoCRUDAdapter(CRUDAdapter):
                     _logger.debug(
                         "api.call(%s, %s, %s, %s) returned %s in %s seconds",
                         method, arguments, http_method, storeview, result,
+                        (datetime.now() - start).seconds)
+                # Uncomment to record requests/responses in ``recorder``
+                # record(method, arguments, result)
+                return result
+        except (socket.gaierror, socket.error, socket.timeout) as err:
+            raise NetworkRetryableError(
+                'A network error caused the failure of the job: '
+                '%s' % err)
+
+    def _call(self, method, arguments):
+        try:
+            custom_url = self.magento.use_custom_api_path
+            _logger.debug("Start calling Magento api %s", method)
+            with magentolib.API(self.magento.location,
+                                self.magento.username,
+                                self.magento.password,
+                                full_url=custom_url,
+                                verify_ssl=self.magento.verify_ssl) as api:
+                # When Magento is installed on PHP 5.4+, the API
+                # may return garble data if the arguments contain
+                # trailing None.
+                if isinstance(arguments, list):
+                    while arguments and arguments[-1] is None:
+                        arguments.pop()
+                start = datetime.now()
+                try:
+                    result = api.call(method, arguments)
+                except:
+                    _logger.error("api.call(%s, %s) failed",
+                                  method, arguments)
+                    raise
+                else:
+                    _logger.debug(
+                        "api.call(%s, %s) returned %s in %s seconds",
+                        method, arguments, result,
                         (datetime.now() - start).seconds)
                 # Uncomment to record requests/responses in ``recorder``
                 # record(method, arguments, result)
@@ -218,6 +252,12 @@ class GenericAdapter(MagentoCRUDAdapter):
     _magento2_search = None
     _magento2_key = None
     _admin_path = None
+
+    @staticmethod
+    def _escape(term):
+        if isinstance(term, basestring):
+            return term.replace('+', '%2B')
+        return term
 
     @staticmethod
     def get_searchCriteria(filters):
@@ -283,7 +323,7 @@ class GenericAdapter(MagentoCRUDAdapter):
                 params)
             if 'items' in res:
                 res = res['items'] or []
-            return [item[key] for item in res if item[key] != 0]
+            return [item[key] for item in res if item and item[key] != 0]
 
         # 1.x
         return self._call('%s.search' % self._magento_model,
@@ -296,16 +336,13 @@ class GenericAdapter(MagentoCRUDAdapter):
         """
         if self.magento.version == '2.0':
 
-            def escape(term):
-                if isinstance(term, basestring):
-                    return term.replace('+', '%2B')
-                return term
-
             if attributes:
                 raise NotImplementedError
             if self._magento2_key:
-                return self._call('%s/%s' % (self._magento2_model, escape(id)),
-                                  attributes)
+                return self._call_v2('%s/%s' % (
+                    self._magento2_model,
+                    self._escape(id)
+                ), attributes=attributes)
             else:
                 res = self._call(self._magento2_model)
                 return next(record for record in res if record['id'] == id)
@@ -347,6 +384,14 @@ class GenericAdapter(MagentoCRUDAdapter):
 
     def write(self, id, data):
         """ Update records on the external system """
+        if self.magento.version == '2.0':
+            if not self._magento2_write_wrapper:
+                raise NotImplementedError
+            wrapped_data = {self._magento2_write_wrapper: data}
+            return self._call_v2('%s/%s' % (
+                self._magento2_model,
+                self._escape(id)
+            ), arguments=wrapped_data, http_method='put')
         return self._call('%s.update' % self._magento_model,
                           [int(id), data])
 
