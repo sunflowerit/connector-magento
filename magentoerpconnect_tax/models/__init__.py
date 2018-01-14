@@ -2,3 +2,5 @@
 
 from . import account_tax
 from . import magento_backend
+from . import product_product
+

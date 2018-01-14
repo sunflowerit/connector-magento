@@ -22,6 +22,7 @@
 import socket
 import logging
 import xmlrpclib
+import urllib
 
 from openerp.addons.connector.unit.backend_adapter import CRUDAdapter
 from openerp.addons.connector.exception import (NetworkRetryableError,
@@ -256,7 +257,8 @@ class GenericAdapter(MagentoCRUDAdapter):
     @staticmethod
     def _escape(term):
         if isinstance(term, basestring):
-            return term.replace('+', '%2B')
+            return urllib.quote(
+                term).replace('/', '%2F')
         return term
 
     @staticmethod
@@ -318,9 +320,9 @@ class GenericAdapter(MagentoCRUDAdapter):
                 params['fields'] = key
                 if filters:
                     raise NotImplementedError  # Unexpected much?
-            res = self._call(
+            res = self._call_v2(
                 self._magento2_search or self._magento2_model,
-                params)
+                arguments=params)
             if 'items' in res:
                 res = res['items'] or []
             return [item[key] for item in res if item and item[key] != 0]
@@ -342,9 +344,9 @@ class GenericAdapter(MagentoCRUDAdapter):
                 return self._call_v2('%s/%s' % (
                     self._magento2_model,
                     self._escape(id)
-                ), attributes=attributes)
+                ))
             else:
-                res = self._call(self._magento2_model)
+                res = self._call_v2(self._magento2_model)
                 return next(record for record in res if record['id'] == id)
 
         arguments = [int(id)]
@@ -371,9 +373,9 @@ class GenericAdapter(MagentoCRUDAdapter):
             else:
                 if filters:
                     raise NotImplementedError  # Unexpected much?
-            res = self._call(
+            res = self._call_v2(
                 self._magento2_search or self._magento2_model,
-                params)
+                arguments=params)
             return res
 
         return self._call('%s.list' % self._magento_model, [filters])
