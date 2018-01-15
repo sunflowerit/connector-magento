@@ -82,7 +82,9 @@ class MagentoProductProduct(models.Model):
     openerp_id = fields.Many2one(comodel_name='product.product',
                                  string='Product',
                                  required=True,
-                                 ondelete='restrict')
+                                 # We should be able to delete products,
+                                 # even when they have an equivalent in Magento.
+                                 ondelete='cascade')
     # XXX website_ids can be computed from categories
     website_ids = fields.Many2many(comodel_name='magento.website',
                                    string='Websites',
