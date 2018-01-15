@@ -31,7 +31,7 @@ class MagentoAccountProductFiscalClassification(models.Model):
         comodel_name='account.product.fiscal.classification',
         string='Linked Odoo taxes',
         required=True,
-        ondelete='restrict')
+        ondelete='cascade')
 
 
 class AccountProductFiscalClassification(models.Model):
@@ -41,6 +41,7 @@ class AccountProductFiscalClassification(models.Model):
         comodel_name='magento.account.product.fiscal.classification',
         inverse_name='openerp_id',
         string='Magento Bindings',
+        ondelete='cascade',
     )
 
 

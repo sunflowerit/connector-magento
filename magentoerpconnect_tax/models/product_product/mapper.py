@@ -3,16 +3,14 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 from openerp.addons.magentoerpconnect.backend import magento, magento2000
-from openerp.addons.magentoerpconnect.product import \
-    ProductImportMapper2000 as BaseProductImportMapper, \
-    ProductImporter2000 as BaseProductImporter
+from openerp.addons.magentoerpconnect.product import ProductImportMapper2000
 from openerp.addons.connector.unit.mapper import mapping
 from openerp.addons.connector.exception import MappingError
 
 
-@magento2000
-class ProductImportMapper(BaseProductImportMapper):
-    _model_name = 'magento.product.product'
+@magento2000(replacing=ProductImportMapper2000)
+class ProductImportMapper2000WithTaxSupport(ProductImportMapper2000):
+    """ This class extends the main mapper with taxes support. """
 
     @mapping
     def fiscal_classification_id(self, record):
@@ -29,5 +27,4 @@ class ProductImportMapper(BaseProductImportMapper):
                     "is not imported." % mag_tax_class_id)
             result.update({'fiscal_classification_id':
                 fiscal_classification_id})
-        return {}
-
+        return result
