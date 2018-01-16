@@ -630,10 +630,10 @@ class StoreviewAdapter(GenericAdapter):
             if attributes:
                 raise NotImplementedError  # TODO
             storeview = next(
-                record for record in self._call('store/storeViews')
+                record for record in self._call_v2('store/storeViews')
                 if record['id'] == id)
             storeview.update(next(
-                record for record in self._call('store/storeConfigs')
+                record for record in self._call_v2('store/storeConfigs')
                 if record['id'] == id))
             return storeview
         return super(StoreviewAdapter, self).read(id, attributes=attributes)
