@@ -885,10 +885,15 @@ class SaleOrderImporter(MagentoImporter):
                                    model='magento.res.partner')
             map_record = mapper.map_record(customer_record)
             map_record.update(guest_customer=True)
-            partner_binding = self.env['magento.res.partner'].create(
-                map_record.values(for_create=True))
-            partner_binder.bind(guest_customer_id,
-                                partner_binding)
+            partner_obj = self.env['magento.res.partner']
+            partner_id = partner_binder.to_openerp(record['customer_id'])
+            if partner_id:
+                partner_binding = partner_obj.browse(partner_id)
+                partner_binding.write(map_record.values())
+            else:
+                partner_binding = partner_obj.create(map_record.values())
+                partner_binder.bind(guest_customer_id,
+                                    partner_binding)
         else:
 
             # we always update the customer when importing an order
