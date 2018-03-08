@@ -614,7 +614,7 @@ class IsActiveProductImportMapper(ImportMapper):
         """Check if the product is active in Magento
         and set active flag in OpenERP
         status == 1 in Magento means active"""
-        return {'active': (record.get('status') == '1')}
+        return {'active': True}
 
 
 @magento
