@@ -3067,6 +3067,11 @@ magento_base_responses = \
                                                            'description': 'The Nokia 2610 is an easy to use device that combines multiple messaging options including email, instant messaging, and more. You can even download MP3 ringtones, graphics, and games straight to the phone, or surf the Internet with Cingular\'s MEdia Net service. It\'s the perfect complement to Cingular service for those even remotely interested in mobile Web capabilities in an affordable handset.<br><br>\r\n\r\n<b>Design</b><br>\r\nCompact and stylish, the 2610 features a candybar design sporting a bright 128 x 128 pixel display capable of displaying over 65,000 colors. Most of the phone\'s features and on-screen menus are controlled by a center toggle on the control pad. A standard hands-free headphone jack is provided, as are volume control keys, and there\'s even a "Go-To" button that can be assigned by the user for quick access to favorite applications. Lastly, the included speakerphone allows you to talk handsfree, and because the phone sports an internal antenna, there\'s nothing to snag or break off.\r\n\r\n',
                                                            'dimension': '4.1 x 1.7 x 0.7 inches ',
                                                            'enable_googlecheckout': None,
+                                                           'extension_attributes': {
+                                                               'stock_item': {
+                                                                   'qty': 7.0
+                                                               }
+                                                           },
                                                            'gift_message_available': '',
                                                            'group_price': [],
                                                            'has_options': '0',

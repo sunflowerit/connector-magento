@@ -106,6 +106,7 @@ class TestImportMagento(SetUpMagentoSynchronized):
         product = product_model.search([('backend_id', '=', backend_id),
                                         ('magento_id', '=', '16')])
         self.assertEqual(len(product), 1)
+        self.assertEqual(product.qty_available, 7.0)
 
     def test_import_product_category_missing(self):
         """ Import of a simple product when the category is missing """

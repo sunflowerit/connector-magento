@@ -392,7 +392,10 @@ class CatalogImageImporter(Importer):
         image_data = None
         while not binary and images:
             image_data = images.pop()
-            binary = self._get_binary_image(image_data)
+            try:
+                binary = self._get_binary_image(image_data)
+            except requests.exceptions.ConnectionError:
+                binary = None
         if not binary:
             return
         self._write_image_data(binding_id, binary, image_data)
@@ -512,7 +515,7 @@ class ProductImportMapper(ImportMapper):
 
     @mapping
     def categories(self, record):
-        mag_categories = record.get('categories', record['category_ids'])
+        mag_categories = record.get('categories', record.get('category_ids'))
         binder = self.binder_for('magento.product.category')
 
         category_ids = []
@@ -563,6 +566,12 @@ class ProductImportMapper(ImportMapper):
         if product:
             return {'openerp_id': product.id}
 
+    @mapping
+    def qty(self, record):
+        for key, attr in record.get('extension_attributes', {}).iteritems():
+            if key == 'stock_item':
+                return {'qty': attr.get('qty', 0.0)}
+
 
 @magento2000
 class ProductImportMapper2000(ProductImportMapper):
@@ -596,7 +605,7 @@ class ProductImporter(MagentoImporter):
         record = self.magento_record
         # import related categories
         for mag_category_id in record.get(
-                'categories', record['category_ids']):
+                'categories', record.get('category_ids')):
             self._import_dependency(mag_category_id,
                                     'magento.product.category')
         if record['type_id'] == 'bundle':
@@ -643,9 +652,25 @@ class ProductImporter(MagentoImporter):
         self._validate_product_type(data)
 
     def _create(self, data):
+        try:
+            qty = data.pop('qty')
+        except KeyError:
+            qty = None
+
         openerp_binding = super(ProductImporter, self)._create(data)
         checkpoint = self.unit_for(AddCheckpoint)
         checkpoint.run(openerp_binding.id)
+
+        # Modify Stock
+        if qty:
+            change_qty_obj = self.env['stock.change.product.qty']
+            wiz = change_qty_obj.create({
+                'product_id': openerp_binding.openerp_id.id,
+                'new_quantity': qty,
+                # 'location_id':  self.bigwh.lot_stock_id.id,
+            })
+            wiz.change_product_qty()
+
         return openerp_binding
 
     def _after_import(self, binding):
@@ -699,7 +724,7 @@ class IsActiveProductImportMapper(ImportMapper):
         """Check if the product is active in Magento
         and set active flag in Odoo. Status == 1 in Magento means active.
         2.0 REST API returns an integer, 1.x a string. """
-        return {'active': (record.get('status') in ('1', 1))}
+        return {'active': True}
 
 
 @magento

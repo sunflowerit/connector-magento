@@ -405,7 +405,7 @@ class PartnerAddressBook(ConnectorUnit):
         mag_address_ids = adapter.search({'customer_id':
                                           {'eq': magento_partner_id}})
         if not mag_address_ids:
-            return
+            return []
         return [(address_id, adapter.read(address_id))
                 for address_id in mag_address_ids]
 
