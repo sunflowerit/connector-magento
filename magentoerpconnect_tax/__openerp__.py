@@ -14,6 +14,7 @@
     'images': [],
     'demo': [],
     'data': [
+        'security/ir.model.access.csv',
         'views/magento_backend.xml',
     ],
     'installable': True,
